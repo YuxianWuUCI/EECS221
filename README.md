@@ -1,1 +1,1 @@
-# EECS221
+Run the gui.py as the main program
