@@ -1,6 +1,10 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+#谈谈我在branch&bound算法上的一些除算法本身的贡献吧
+#1. 对于每个node的cost下界的预估，我加入了最后一个item到end address的长度，把下界提高，增加它被prune的机会
+#2. 选定了一个branch后优先发展该branch以最快的速度达到第一个leaf node从而设立当前最优解，方便之后prune
+
 #import numpy library for matrix calculation
 from numpy import *
 import numpy as np
@@ -9,32 +13,6 @@ from project5 import FindItem
 
 
 INFINITY=999
-
-'''
-fr = open("warehouse-grid.csv", "r")
-global lines
-lines = fr.readlines()
-fr.close()
-#Find the address of a specific item
-#Input: the ID of the item, string
-#Output: address of the item, list(length is 2, both type are float)
-def FindItem( target_id ):
-    #print("%s seconds spent for reading the \"warehouse-grid.csv\" file " %(str(t1-t0)))
-    target_address = []
-    for line in lines:
-        comma_pos = line.find(',');
-        if target_id == line[0:comma_pos]:
-            #这里用+2来跳过逗号后面的空格
-            #将字符型先转成浮点数，再用四舍五入转为整型（虽然round返回的还是浮点数）
-            target_address.append(round(float(line[comma_pos+2:line.find(',',comma_pos+1)]))+0.5)
-            comma_pos = line.find(',',comma_pos+1)
-            target_address.append(round(float(line[comma_pos+2:]))+0.5)
-            #print "目标item的地址：", target_address
-            break
-    if len(target_address) == 0:
-        print "target not found"
-    return target_address
-'''
 
 def divide_order(order):
     i = 0
@@ -72,12 +50,6 @@ def branch_bound(start_address, order, end_address):
     for i in range(len(order)):
         item_address = FindItem(order[i])
         temp_address.append(item_address)
-        '''
-        #add the left side of ith item
-        address.append([item_address[0]-0.5, item_address[1]])
-        #add the right side of ith item
-        address.append([item_address[0]+0.5, item_address[1]])
-        '''
     count = len(order)
     it = 0
 
@@ -139,6 +111,9 @@ def branch_bound(start_address, order, end_address):
     '''
     
     #first, calculate the evaluation lower bound for picking up different first item
+    #这里计算的是从start address到order的其中一个item后reduce matrix，cost下界啊这些东西的结果
+	#补充说明一下，这里之所以要单开一个for循环是因为start address与order不同，在reduce matrix里
+	#只有一行一列，所以不能像order一样处理
     for i in range(len(order)):
         temp_cost = cost
         stack_item = []
@@ -175,12 +150,12 @@ def branch_bound(start_address, order, end_address):
         #store the lower bound of this node
         temp_cost = temp_cost + (abs(end[0]-address[stack_item[1]][0])+abs(end[1]-address[stack_item[1]][1]))
         stack_item.append(temp_cost)
-
-#print("order: %s\nlocation: %s\ncost: %s\n\n\n " %(stack_item[0], stack_item[1], stack_item[3]))
+        
         stack_order.append(stack_item)
                        
     next_node = -1
     #then, calculate the lower bound for the next item
+    #接下来就是从一个order 的地址到另一个order的地址了
     while len(stack_order) != 0 and count<5000:
         count = count+1
         min_item = 0
